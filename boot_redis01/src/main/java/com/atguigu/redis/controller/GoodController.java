@@ -1,5 +1,6 @@
 package com.atguigu.redis.controller;
 
+import com.atguigu.redis.util.RedisUtils;
 import org.redisson.Redisson;
 import org.redisson.api.RLock;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -7,7 +8,9 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RestController;
+import redis.clients.jedis.Jedis;
 
+import java.util.Collections;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -199,7 +202,7 @@ public class GoodController {
     /**
      * @return java.lang.String
      * @Description: 设置key+过期时间成原子性操作
-     * 问题 张冠李戴 误删
+     * 问题 张冠李戴 误删 A加锁 执行业务逻辑-->过期时间到-->锁释放--->B线程进来--加锁-->A执行完业务逻辑-->删除锁，释放资源（但是这个时候其实是释放B的锁）
      * @author luoyong
      * @create 5:33 下午 2021/5/29
      * @last modify by [LuoYong 5:33 下午 2021/5/29 ]
@@ -231,8 +234,132 @@ public class GoodController {
     }
 
 
-    @GetMapping("/buy_goods")
-    public String buy_Goods() throws Exception {
+    /**
+     * @return java.lang.String
+     * @Description: 问题：判断和删除之前不是原子性操作-->使用lua脚本解决原子性问题
+     * @author luoyong
+     * @create 10:05 上午 2021/6/5
+     * @last modify by [LuoYong 10:05 上午 2021/6/5 ]
+     */
+    @GetMapping("/buyGoods007")
+    public String buyGoods007() throws Exception {
+        String value = UUID.randomUUID().toString() + Thread.currentThread().getName();
+        try {
+            //设置key+过期时间合成一条命令
+            Boolean flag = stringRedisTemplate.opsForValue().setIfAbsent(KEY, value, 10L, TimeUnit.SECONDS);
+            if (!flag) {
+                return "抢锁失败,please try again";
+            }
+
+            String result = stringRedisTemplate.opsForValue().get("goods:001");
+            int goodsNumber = result == null ? 0 : Integer.parseInt(result);
+            if (goodsNumber > 0) {
+                int realNumber = goodsNumber - 1;
+                stringRedisTemplate.opsForValue().set("goods:001", realNumber + "");
+                System.out.println("你已经成功秒杀商品，此时还剩余：" + realNumber + "件" + "\t 服务器端口：" + serverPort);
+                return "你已经成功秒杀商品，此时还剩余：" + realNumber + "件" + "\t 服务器端口：" + serverPort;
+            } else {
+                System.out.println("商品已经售罄/活动结束/调用超时，欢迎下次光临" + "\t 服务器端口：" + serverPort);
+            }
+            return "商品已经售罄/活动结束/调用超时，欢迎下次光临" + "\t 服务器端口：" + serverPort;
+        } finally {
+            if (stringRedisTemplate.opsForValue().get(KEY).equals(value)) {
+                stringRedisTemplate.delete(KEY);
+            }
+        }
+    }
+
+
+    /**
+     * @return java.lang.String
+     * @Description: 确保redisLock过期时间大于业务执行时间的问题?---->Redis分布式锁如何续期？
+     * @author luoyong
+     * @create 10:05 上午 2021/6/5
+     * @last modify by [LuoYong 10:05 上午 2021/6/5 ]
+     */
+    @GetMapping("/buyGoods008")
+    public String buyGoods008() throws Exception {
+        String value = UUID.randomUUID().toString() + Thread.currentThread().getName();
+        try {
+            //设置key+过期时间合成一条命令
+            Boolean flag = stringRedisTemplate.opsForValue().setIfAbsent(KEY, value, 10L, TimeUnit.SECONDS);
+            if (!flag) {
+                return "抢锁失败,please try again";
+            }
+
+            String result = stringRedisTemplate.opsForValue().get("goods:001");
+            int goodsNumber = result == null ? 0 : Integer.parseInt(result);
+            if (goodsNumber > 0) {
+                int realNumber = goodsNumber - 1;
+                stringRedisTemplate.opsForValue().set("goods:001", realNumber + "");
+                System.out.println("你已经成功秒杀商品，此时还剩余：" + realNumber + "件" + "\t 服务器端口：" + serverPort);
+                return "你已经成功秒杀商品，此时还剩余：" + realNumber + "件" + "\t 服务器端口：" + serverPort;
+            } else {
+                System.out.println("商品已经售罄/活动结束/调用超时，欢迎下次光临" + "\t 服务器端口：" + serverPort);
+            }
+            return "商品已经售罄/活动结束/调用超时，欢迎下次光临" + "\t 服务器端口：" + serverPort;
+        } finally {
+            Jedis jedis = RedisUtils.getJedis();
+            String script = "if redis.call('get', KEYS[1]) == ARGV[1] " +
+                    "then " +
+                    "return redis.call('del', KEYS[1]) " +
+                    "else " +
+                    "return 0 " +
+                    "end";
+            try {
+                Object result = jedis.eval(script, Collections.singletonList(KEY), Collections.singletonList(value));
+                if ("1".equals(result.toString())) {
+                    System.out.println("----- del redis_lock_key success");
+                } else {
+                    System.out.println("----- del redis_lock_key fail");
+                }
+            } finally {
+                if (null != jedis) {
+                    jedis.close();
+                }
+            }
+        }
+    }
+
+
+    /**
+     * @return java.lang.String
+     * @Description: 分布式锁 Redisson
+     * @author luoyong
+     * @create 10:44 上午 2021/6/5
+     * @last modify by [LuoYong 10:44 上午 2021/6/5 ]
+     */
+    @GetMapping("/buyGoods009")
+    public String buyGoods009() throws Exception {
+        RLock redissonLock = redisson.getLock(KEY);
+        redissonLock.lock();
+        try {
+
+            String result = stringRedisTemplate.opsForValue().get("goods:001");
+            int goodsNumber = result == null ? 0 : Integer.parseInt(result);
+            if (goodsNumber > 0) {
+                int realNumber = goodsNumber - 1;
+                stringRedisTemplate.opsForValue().set("goods:001", realNumber + "");
+                System.out.println("你已经成功秒杀商品，此时还剩余：" + realNumber + "件" + "\t 服务器端口：" + serverPort);
+                return "你已经成功秒杀商品，此时还剩余：" + realNumber + "件" + "\t 服务器端口：" + serverPort;
+            } else {
+                System.out.println("商品已经售罄/活动结束/调用超时，欢迎下次光临" + "\t 服务器端口：" + serverPort);
+            }
+            return "商品已经售罄/活动结束/调用超时，欢迎下次光临" + "\t 服务器端口：" + serverPort;
+        } finally {
+            redissonLock.unlock();
+        }
+    }
+
+    /**
+     * @return java.lang.String
+     * @Description: 分布式锁 Redisson
+     * @author luoyong
+     * @create 10:44 上午 2021/6/5
+     * @last modify by [LuoYong 10:44 上午 2021/6/5 ]
+     */
+    @GetMapping("/buyGoods010")
+    public String buyGoods010() throws Exception {
         RLock redissonLock = redisson.getLock(KEY);
         redissonLock.lock();
         try {
@@ -250,8 +377,10 @@ public class GoodController {
             return "商品已经售罄/活动结束/调用超时，欢迎下次光临" + "\t 服务器端口：" + serverPort;
         } finally {
             if (redissonLock.isLocked() && redissonLock.isHeldByCurrentThread()) {
+                //防止太快了 删除了别人的锁
                 redissonLock.unlock();
             }
         }
     }
 }
+

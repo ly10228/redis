@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.ly.redis.mapper.UserMapper">
+
+    <resultMap id="UserResult" type="com.ly.redis.entity.UserDO">
+        <id property="id" column="id" />
+        <result property="name" column="name" />
+        <result property="accountName" column="accountName" />
+        <result property="email" column="email" />
+        <result property="phoneNumber" column="phoneNumber" />
+        <result property="password" column="password" />
+        <result property="status" column="status" />
+        <result property="updatePassword" column="updatePassword" />
+        <result property="directSupervisor" column="directSupervisor" />
+        <result property="position" column="position" />
+        <result property="wechatPlatformId" column="wechatPlatformId" />
+        <result property="tenantId" column="tenantId" />
+        <result property="gmtCreated" column="gmtCreated" />
+        <result property="gmtModified" column="gmtModified" />
+        <result property="creator" column="creator" />
+        <result property="modifier" column="modifier" />
+        <result property="isDeleted" column="isDeleted" />
+    </resultMap>
+
+    <sql id="userColumns">
+            a.id as "id",
+            a.name as "name",
+            a.account_name as "accountName",
+            a.email as "email",
+            a.phone_number as "phoneNumber",
+            a.password as "password",
+            a.status as "status",
+            a.update_password as "updatePassword",
+            a.direct_supervisor as "directSupervisor",
+            a.position as "position",
+            a.wechat_platform_id as "wechatPlatformId",
+            a.tenant_id as "tenantId",
+            a.gmt_created as "gmtCreated",
+            a.gmt_modified as "gmtModified",
+            a.creator as "creator",
+            a.modifier as "modifier",
+            a.is_deleted as "isDeleted"
+    </sql>
+
+</mapper>

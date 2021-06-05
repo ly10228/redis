@@ -19,7 +19,7 @@ public class RedisUtils
         JedisPoolConfig jedisPoolConfig=new JedisPoolConfig();
         jedisPoolConfig.setMaxTotal(20);
         jedisPoolConfig.setMaxIdle(10);
-        jedisPool=new JedisPool(jedisPoolConfig,"192.168.111.147",6379);
+        jedisPool=new JedisPool(jedisPoolConfig,"192.168.0.122",6379);
     }
 
     public static Jedis getJedis() throws Exception {
