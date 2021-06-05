@@ -19,8 +19,9 @@ import java.io.Serializable;
 public class RedisConfig {
 
     @Bean
-    public RedisTemplate<String, Serializable> redisTemplate(LettuceConnectionFactory connectionFactory) {
-        RedisTemplate<String, Serializable> redisTemplate = new RedisTemplate<>();
+    public RedisTemplate<String,Serializable> redisTemplate(LettuceConnectionFactory connectionFactory)
+    {
+        RedisTemplate<String,Serializable> redisTemplate = new RedisTemplate<>();
         redisTemplate.setConnectionFactory(connectionFactory);
 
         redisTemplate.setKeySerializer(new StringRedisSerializer());
@@ -30,10 +31,11 @@ public class RedisConfig {
     }
 
     @Bean
-    public Redisson redisson() {
+    public Redisson redisson()
+    {
         Config config = new Config();
 
-        config.useSingleServer().setAddress("redis://192.168.0.122:6379").setDatabase(0);
+        config.useSingleServer().setAddress("redis://192.168.0.49:6379").setDatabase(0);
 
         return (Redisson) Redisson.create(config);
     }
