@@ -377,6 +377,7 @@ public class GoodController {
             return "商品已经售罄/活动结束/调用超时，欢迎下次光临" + "\t 服务器端口：" + serverPort;
         } finally {
             if (redissonLock.isLocked() && redissonLock.isHeldByCurrentThread()) {
+                //持有锁 并且持有锁的是当前线程
                 //防止太快了 删除了别人的锁
                 redissonLock.unlock();
             }
