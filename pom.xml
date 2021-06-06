@@ -12,6 +12,8 @@
         <module>boot_redis01</module>
         <module>boot_redis02</module>
         <module>redis</module>
+        <module>redis_redlock</module>
+        <module>canal_demo</module>
     </modules>
 
 
