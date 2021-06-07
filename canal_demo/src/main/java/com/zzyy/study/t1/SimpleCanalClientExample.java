@@ -29,7 +29,7 @@ public class SimpleCanalClientExample
     public static void main(String args[]) {
 
         // 创建链接canal服务端
-        CanalConnector connector = CanalConnectors.newSingleConnector(new InetSocketAddress("192.168.111.147",
+        CanalConnector connector = CanalConnectors.newSingleConnector(new InetSocketAddress("192.168.0.57",
                 11111), "example", "canal", "canal");
         int batchSize = 1000;
         int emptyCount = 0;

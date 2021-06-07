@@ -1,33 +1,29 @@
 package com.zzyy.study.t1;
 
-import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.otter.canal.client.CanalConnector;
 import com.alibaba.otter.canal.client.CanalConnectors;
 import com.alibaba.otter.canal.protocol.CanalEntry.*;
 import com.alibaba.otter.canal.protocol.Message;
-import com.zzyy.study.entities.Order;
 import com.zzyy.study.util.RedisUtils;
 import redis.clients.jedis.Jedis;
 
 import java.net.InetSocketAddress;
 import java.util.List;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 /**
  * @auther zzyy
  * @create 2020-11-11 17:13
  */
-public class RedisCanalClientExample
-{
+public class RedisCanalClientExample {
 
     public static final Integer _60SECONDS = 60;
 
     public static void main(String args[]) {
 
         // 创建链接canal服务端
-        CanalConnector connector = CanalConnectors.newSingleConnector(new InetSocketAddress("192.168.111.147",
+        CanalConnector connector = CanalConnectors.newSingleConnector(new InetSocketAddress("192.168.0.57",
                 11111), "example", "", "");
         int batchSize = 1000;
         int emptyCount = 0;
@@ -36,7 +32,7 @@ public class RedisCanalClientExample
             connector.connect();
             //connector.subscribe(".*\\..*");
             //connector.subscribe("db2020.t_order");
-            connector.subscribe("db2020.t_user");
+            connector.subscribe("redis.t_user");
             connector.rollback();
             int totalEmptyCount = 10 * _60SECONDS;
 
@@ -46,7 +42,11 @@ public class RedisCanalClientExample
                 int size = message.getEntries().size();
                 if (batchId == -1 || size == 0) {
                     emptyCount++;
-                    try { TimeUnit.SECONDS.sleep(1); } catch (InterruptedException e) { e.printStackTrace(); }
+                    try {
+                        TimeUnit.SECONDS.sleep(1);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 } else {
                     emptyCount = 0;
                     printEntry(message.getEntries());
@@ -71,7 +71,7 @@ public class RedisCanalClientExample
             try {
                 rowChage = RowChange.parseFrom(entry.getStoreValue());
             } catch (Exception e) {
-                throw new RuntimeException("ERROR ## parser of eromanga-event has an error,data:" + entry.toString(),e);
+                throw new RuntimeException("ERROR ## parser of eromanga-event has an error,data:" + entry.toString(), e);
             }
 
             EventType eventType = rowChage.getEventType();
@@ -91,59 +91,47 @@ public class RedisCanalClientExample
         }
     }
 
-    private static void redisInsert(List<Column> columns)
-    {
+    private static void redisInsert(List<Column> columns) {
         JSONObject jsonObject = new JSONObject();
-        for (Column column : columns)
-        {
+        for (Column column : columns) {
             System.out.println(column.getName() + " : " + column.getValue() + "    insert=" + column.getUpdated());
-            jsonObject.put(column.getName(),column.getValue());
+            jsonObject.put(column.getName(), column.getValue());
         }
-        if(columns.size() > 0)
-        {
-            try(Jedis jedis = RedisUtils.getJedis())
-            {
-                jedis.set(columns.get(0).getValue(),jsonObject.toJSONString());
-            }catch (Exception e){
+        if (columns.size() > 0) {
+            try (Jedis jedis = RedisUtils.getJedis()) {
+                jedis.set(columns.get(0).getValue(), jsonObject.toJSONString());
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     }
 
-    private static void redisDelete(List<Column> columns)
-    {
+    private static void redisDelete(List<Column> columns) {
         JSONObject jsonObject = new JSONObject();
-        for (Column column : columns)
-        {
+        for (Column column : columns) {
             System.out.println(column.getName() + " : " + column.getValue() + "    delete=" + column.getUpdated());
-            jsonObject.put(column.getName(),column.getValue());
+            jsonObject.put(column.getName(), column.getValue());
         }
-        if(columns.size() > 0)
-        {
-            try(Jedis jedis = RedisUtils.getJedis())
-            {
+        if (columns.size() > 0) {
+            try (Jedis jedis = RedisUtils.getJedis()) {
                 jedis.del(columns.get(0).getValue());
-            }catch (Exception e){
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
     }
 
-    private static void redisUpdate(List<Column> columns)
-    {
+    private static void redisUpdate(List<Column> columns) {
         JSONObject jsonObject = new JSONObject();
-        for (Column column : columns)
-        {
+        for (Column column : columns) {
             System.out.println(column.getName() + " : " + column.getValue() + "    update=" + column.getUpdated());
-            jsonObject.put(column.getName(),column.getValue());
+            jsonObject.put(column.getName(), column.getValue());
         }
-        if(columns.size() > 0)
-        {
-            try(Jedis jedis = RedisUtils.getJedis())
-            {
-                jedis.set(columns.get(0).getValue(),jsonObject.toJSONString());
-                System.out.println("---------update after: "+jedis.get(columns.get(0).getValue()));
-            }catch (Exception e){
+        if (columns.size() > 0) {
+            try (Jedis jedis = RedisUtils.getJedis()) {
+                jedis.set(columns.get(0).getValue(), jsonObject.toJSONString());
+                System.out.println("---------update after: " + jedis.get(columns.get(0).getValue()));
+            } catch (Exception e) {
                 e.printStackTrace();
             }
         }
@@ -151,10 +139,9 @@ public class RedisCanalClientExample
         long startTime = System.currentTimeMillis();
 
         long endTime = System.currentTimeMillis();
-        System.out.println("----costTime: "+(endTime - startTime) +" 毫秒");
+        System.out.println("----costTime: " + (endTime - startTime) + " 毫秒");
 
     }
-
 
 
 }
