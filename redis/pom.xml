@@ -13,11 +13,6 @@
     <version>0.0.1-SNAPSHOT</version>
     <name>redis</name>
 
-    <modules>
-        <module>boot_redis01</module>
-        <module>boot_redis02</module>
-    </modules>
-
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <maven.compiler.source>1.8</maven.compiler.source>
